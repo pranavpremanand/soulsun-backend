@@ -6,8 +6,8 @@ const couponSchema = new mongoose.Schema(
     description: { type: String },
     discountType: { type: String, enum: ["percentage", "fixed"], required: true },
     discountValue: { type: Number, required: true },
-    usageLimit: { type: Number, default: 1 }, // Total times the coupon can be used
-    usageLimitPerUser: { type: Number, default: 1 }, // Per user usage limit
+    usageLimit: { type: Number, default: 5 }, // Total times the coupon can be used
+    usageLimitPerUser: { type: Number, default: 5 }, // Per user usage limit
     minimumAmount: { type: Number, default: 0 },
     expiryDate: { type: Date, required: true },
 
