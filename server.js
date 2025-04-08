@@ -1,11 +1,9 @@
-
-
 // server.js
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
-const path = require('path');
+const path = require("path");
 
 const authRoutes = require("./routes/auth");
 const productRoutes = require("./routes/product");
@@ -15,6 +13,7 @@ const profileRoutes = require("./routes/profile");
 
 const wishlistRoutes = require("./routes/wishlist");
 const categoriesRoutes = require("./routes/category");
+const analyticsRoutes = require("./routes/analyticsRoutes");
 const health = require("./routes/health");
 
 dotenv.config();
@@ -22,14 +21,21 @@ const app = express();
 
 app.use(express.json());
 const corsOptions = {
-  origin: '*', 
-  methods: ['GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin','Access-Control-Allow-Origin'],
+  origin: "*",
+  methods: ["GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+    "Accept",
+    "Origin",
+    "Access-Control-Allow-Origin",
+  ],
 };
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));  // Pre-flight request for all routes
+app.options("*", cors(corsOptions)); // Pre-flight request for all routes
 // Serve static files from the 'assets' folder
-app.use('/public', express.static(path.join(__dirname, 'public')));
+app.use("/public", express.static(path.join(__dirname, "public")));
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("Connected to MongoDB"))
@@ -43,6 +49,7 @@ app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/category", categoriesRoutes);
 app.use("/api/health", health);
+app.use("/api/analytics", analyticsRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

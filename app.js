@@ -12,6 +12,7 @@ const wishlistRoutes = require("./routes/wishlist");
 const profileRoutes = require("./routes/profile");
 const categoriesRoutes = require("./routes/category");
 const health = require("./routes/health");
+const analyticsRoutes = require("./routes/analyticsRoutes");
 
 dotenv.config();
 const app = express();
@@ -19,15 +20,22 @@ const app = express();
 app.use(express.json());
 // Configure CORS
 const corsOptions = {
-  origin: '*', 
-  methods: ['GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin','Access-Control-Allow-Origin'],
+  origin: "*",
+  methods: ["GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+    "Accept",
+    "Origin",
+    "Access-Control-Allow-Origin",
+  ],
 };
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));  // Pre-flight request for all routes
+app.options("*", cors(corsOptions)); // Pre-flight request for all routes
 
 // Serve static files from the 'assets' folder
-app.use('/public', express.static(path.join(__dirname, 'public')));
+app.use("/public", express.static(path.join(__dirname, "public")));
 
 // Middleware to ensure DB connection for each request
 app.use(async (req, res, next) => {
@@ -47,6 +55,7 @@ app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/category", categoriesRoutes);
 app.use("/api/health", health);
+app.use("/api/analytics", analyticsRoutes);
 
 // Export the app as a serverless function
 module.exports = app;
