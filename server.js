@@ -15,6 +15,7 @@ const wishlistRoutes = require("./routes/wishlist");
 const categoriesRoutes = require("./routes/category");
 const analyticsRoutes = require("./routes/analyticsRoutes");
 const health = require("./routes/health");
+const storeUserRequest = require("./middlewares/storeUserRequest");
 
 dotenv.config();
 const app = express();
@@ -41,6 +42,8 @@ mongoose
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.log(err));
 
+app.use("/api/analytics", analyticsRoutes);
+app.use(storeUserRequest);
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/shipping", shippingRoutes);
@@ -49,7 +52,6 @@ app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/category", categoriesRoutes);
 app.use("/api/health", health);
-app.use("/api/analytics", analyticsRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

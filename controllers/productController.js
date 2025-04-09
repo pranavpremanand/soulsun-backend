@@ -385,47 +385,28 @@ const searchProducts = async (req, res) => {
 };
 
 const addView = async (req, res) => {
-  try {
-    const { productId } = req.body;
-    const userId = req.user._id; // Assuming the user ID is in req.user._id
+  const { productId } = req.body;
 
-    // Validate if the productId is a valid ObjectId
-    if (!mongoose.Types.ObjectId.isValid(productId)) {
+  try {
+    if (!productId) {
       return res
         .status(400)
-        .json({ success: false, message: "Invalid product ID" });
+        .json({ success: false, message: "Missing productId" });
     }
 
-    // Check if the view record already exists for the same user and product
-    const existingView = await ProductView.findOne({ productId, userId });
-    if (existingView) {
-      return res.status(400).json({
-        success: false,
-        message: "You have already viewed this product",
-      });
+    const viewDoc = await ProductView.findOne({ productId });
+
+    if (viewDoc) {
+      viewDoc.views += 1;
+      await viewDoc.save();
+    } else {
+      await ProductView.create({ productId, views: 1 }); // Set initial view
     }
 
-    // Create a new ProductView record
-    const newView = new ProductView({
-      productId: productId,
-      userId: userId,
-    });
-
-    // Save the view record to the database
-    await newView.save();
-
-    // Return success response
-    res.status(201).json({
-      success: true,
-      message: "Product view added successfully",
-    });
+    res.status(200).json({ success: true, message: "View counted" });
   } catch (error) {
-    console.error("Error adding product view:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to add product view",
-      error: error.message,
-    });
+    console.error(error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 

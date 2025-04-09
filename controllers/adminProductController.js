@@ -2,51 +2,100 @@ const mongoose = require("mongoose");
 const Shipping = require("../models/shipping");
 const Product = require("../models/product");
 const ProductView = require("../models/ProductView");
-// const Product = require("../models/Product");
-// const Shipping = require("../models/Shipping");
 
-// Get most viewed products
 const getMostViewedProducts = async (req, res) => {
   try {
     const { limit = 10, period } = req.query;
 
-    // Build date filter if period is provided
-    const dateFilter = {};
+    const matchStage = {};
+
+    // Optional time filtering
     if (period) {
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - parseInt(period));
-      dateFilter.timestamp = { $gte: startDate };
+      matchStage.createdAt = { $gte: startDate };
     }
 
-    const mostViewedProducts = await Product.aggregate([
-      { $match: dateFilter },
-      {
-        $group: {
-          _id: "$productId",
-          viewCount: { $sum: 1 },
-          uniqueViewers: { $addToSet: "$userId" },
-        },
-      },
-      { $sort: { viewCount: -1 } },
-      { $limit: parseInt(limit) },
+    // Fetch most viewed products by aggregating ProductView model
+    const mostViewedProducts = await ProductView.aggregate([
+      { $match: matchStage },
+      // Join the Product model to get product details
       {
         $lookup: {
-          from: "products",
-          localField: "_id",
+          from: "products", // Assuming the collection name is "products"
+          localField: "productId",
           foreignField: "_id",
           as: "productDetails",
         },
       },
+      // Unwind the productDetails array
       { $unwind: "$productDetails" },
+      // Look up sales data from the Shipping collection
       {
-        $project: {
-          _id: 1,
-          name: "$productDetails.name",
-          price: "$productDetails.price",
-          viewCount: 1,
-          uniqueViewers: { $size: "$uniqueViewers" },
+        $lookup: {
+          from: "shippings",
+          let: { productId: "$productId" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $in: ["$$productId", "$products._id"],
+                },
+              },
+            },
+            {
+              $unwind: "$products",
+            },
+            {
+              $match: {
+                $expr: {
+                  $eq: ["$products._id", "$$productId"],
+                },
+              },
+            },
+            {
+              $group: {
+                _id: "$products._id",
+                totalSales: {
+                  $sum: {
+                    $multiply: ["$products.price", "$products.quantity"],
+                  },
+                },
+                totalQuantity: { $sum: "$products.quantity" },
+              },
+            },
+          ],
+          as: "salesData",
         },
       },
+      // Unwind the salesData array (or set defaults if no sales)
+      {
+        $lookup: {
+          from: "news",
+          localField: "productId",
+          foreignField: "productId",
+          as: "productNews",
+        },
+      },
+      // Project the necessary fields
+      {
+        $project: {
+          _id: "$productId",
+          name: "$productDetails.name",
+          price: "$productDetails.price",
+          views: "$views",
+          totalNetSale: {
+            $ifNull: [{ $arrayElemAt: ["$salesData.totalSales", 0] }, 0],
+          },
+          quantity: {
+            $ifNull: [{ $arrayElemAt: ["$salesData.totalQuantity", 0] }, 0],
+          },
+        },
+      },
+      // Sort by views in descending order
+      { $sort: { views: -1 } },
+      // Limit the number of results
+      { $limit: parseInt(limit) },
     ]);
 
     res.status(200).json({
@@ -62,6 +111,64 @@ const getMostViewedProducts = async (req, res) => {
     });
   }
 };
+
+// Get most viewed products
+// const getMostViewedProducts = async (req, res) => {
+//   try {
+//     const { limit = 10, period } = req.query;
+
+//     // Build date filter if period is provided
+//     const dateFilter = {};
+//     if (period) {
+//       const startDate = new Date();
+//       startDate.setDate(startDate.getDate() - parseInt(period));
+//       dateFilter.timestamp = { $gte: startDate };
+//     }
+
+//     const mostViewedProducts = await Product.aggregate([
+//       { $match: dateFilter },
+//       {
+//         $group: {
+//           _id: "$productId",
+//           viewCount: { $sum: 1 },
+//           uniqueViewers: { $addToSet: "$userId" },
+//         },
+//       },
+//       { $sort: { viewCount: -1 } },
+//       { $limit: parseInt(limit) },
+//       {
+//         $lookup: {
+//           from: "products",
+//           localField: "_id",
+//           foreignField: "_id",
+//           as: "productDetails",
+//         },
+//       },
+//       { $unwind: "$productDetails" },
+//       {
+//         $project: {
+//           _id: 1,
+//           name: "$productDetails.name",
+//           price: "$productDetails.price",
+//           viewCount: 1,
+//           uniqueViewers: { $size: "$uniqueViewers" },
+//         },
+//       },
+//     ]);
+
+//     res.status(200).json({
+//       success: true,
+//       data: mostViewedProducts,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching most viewed products:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Failed to fetch most viewed products",
+//       error: error.message,
+//     });
+//   }
+// };
 
 // Get most purchased products
 const getMostPurchasedProducts = async (req, res) => {
@@ -113,7 +220,7 @@ const getProductPerformance = async (req, res) => {
   try {
     const { productId } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(productId)) {
+    if (!productId) {
       return res
         .status(400)
         .json({ success: false, message: "Invalid product ID" });
@@ -122,7 +229,7 @@ const getProductPerformance = async (req, res) => {
     // Get purchase data
     const purchaseData = await Shipping.aggregate([
       { $unwind: "$products" },
-      { $match: { "products._id": mongoose.Types.ObjectId(productId) } },
+      { $match: { "products._id": productId } },
       {
         $group: {
           _id: null,
@@ -137,7 +244,7 @@ const getProductPerformance = async (req, res) => {
 
     // Get view data
     const viewData = await ProductView.aggregate([
-      { $match: { productId: mongoose.Types.ObjectId(productId) } },
+      { $match: { productId: productId } },
       {
         $group: {
           _id: null,

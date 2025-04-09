@@ -55,7 +55,10 @@ router.get(
 router.get("/cart/abandoned", cartController.getAbandonedCartMetrics);
 router.get("/checkout/failed-payments", cartController.getFailedPaymentMetrics);
 router.get("/checkout/funnel", cartController.getCheckoutFunnelMetrics);
+router.get("/device-stats", cartController.getDeviceStats);
+router.get("/cart-analytics", cartController.getCartAnalytics);
+router.post("/cart-analytics", cartController.createCartAnalytics);
 
-router.post("/add-view", protectRoute, addView);
+router.post("/add-view", addView);
 
 module.exports = router;

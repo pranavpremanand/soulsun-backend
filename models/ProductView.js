@@ -6,15 +6,11 @@ const ProductViewSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Product",
       required: true,
+      unique: true, // Ensure one view document per product
     },
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // Assuming you have a User model
-      required: true,
-    },
-    viewedAt: {
-      type: Date,
-      default: Date.now,
+    views: {
+      type: Number,
+      default: 1,
     },
   },
   { timestamps: true }

@@ -1,6 +1,9 @@
 const mongoose = require("mongoose");
 const Cart = require("../models/Cart");
 const Shipping = require("../models/shipping");
+const UserRequest = require("../models/UserRequest");
+const CartAnalytics = require("../models/CartAnalytics");
+const Product = require("../models/product");
 // const Shipping = require("../models/Shipping");
 
 // Create PaymentAttempt model if it doesn't exist
@@ -203,9 +206,147 @@ const getCheckoutFunnelMetrics = async (req, res) => {
     });
   }
 };
+const getDeviceStats = async (req, res) => {
+  try {
+    // Aggregate the user requests based on deviceType (Mobile or Desktop)
+    const stats = await UserRequest.aggregate([
+      {
+        $group: {
+          _id: "$deviceType", // Group by deviceType
+          count: { $sum: 1 }, // Count the occurrences of each device type
+        },
+      },
+    ]);
+
+    // If no data found, return a default structure
+    const result = {
+      mobile: 0,
+      desktop: 0,
+    };
+
+    // Map the result to the structure you want
+    stats.forEach((stat) => {
+      if (stat._id === "Mobile") {
+        result.mobile = stat.count;
+      } else if (stat._id === "Desktop") {
+        result.desktop = stat.count;
+      }
+    });
+
+    // Send the stats response
+    res.status(200).json(result);
+  } catch (error) {
+    console.error("Error fetching device stats:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+const getCartAnalytics = async (req, res) => {
+  try {
+    // Aggregate the cart analytics by productId and sum the quantity for each product
+    const stats = await CartAnalytics.aggregate([
+      {
+        $group: {
+          _id: "$productId", // Group by productId
+          totalQuantity: { $sum: "$quantity" }, // Sum the quantity of each product
+        },
+      },
+      {
+        $lookup: {
+          from: "products", // Join with the 'products' collection
+          localField: "_id",
+          foreignField: "_id",
+          as: "productDetails",
+        },
+      },
+      {
+        $unwind: "$productDetails", // Flatten the product details
+      },
+      {
+        $project: {
+          _id: 0,
+          productId: "$_id",
+          productName: "$productDetails.name",
+          productCategory: "$productDetails.category",
+          totalQuantity: 1,
+        },
+      },
+    ]);
+
+    // Return the statistics in the response
+    res.status(200).json(stats);
+  } catch (error) {
+    console.error("Error fetching cart analytics:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+const createCartAnalytics = async (req, res) => {
+  try {
+    const { productId, quantityChange } = req.body;
+
+    // Validate input
+    if (!productId || quantityChange === undefined) {
+      return res
+        .status(400)
+        .json({ message: "Product ID and quantity change are required" });
+    }
+
+    // Ensure the quantityChange is a number
+    if (isNaN(quantityChange)) {
+      return res
+        .status(400)
+        .json({ message: "Quantity change must be a number" });
+    }
+
+    // Find the product in the database (optional check to ensure product exists)
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    // Check if the product already exists in the cart analytics
+    const existingCartItem = await CartAnalytics.findOne({ productId });
+
+    if (existingCartItem) {
+      // Modify the quantity of an existing product in the cart
+      existingCartItem.quantity += quantityChange;
+
+      // If the quantity becomes zero or negative, remove the product from the cart
+      if (existingCartItem.quantity <= 0) {
+        await existingCartItem.deleteOne();
+        return res.status(200).json({ message: "Product removed from cart" });
+      }
+
+      // Save the updated cart item
+      await existingCartItem.save();
+      return res
+        .status(200)
+        .json({ message: "Cart item updated successfully" });
+    } else {
+      // If the product does not exist in the cart, add it with the given quantityChange
+      if (quantityChange <= 0) {
+        return res.status(400).json({
+          message: "Cannot remove product, it doesn’t exist in the cart",
+        });
+      }
+
+      const newCartItem = new CartAnalytics({
+        productId,
+        quantity: quantityChange,
+      });
+      await newCartItem.save();
+      return res.status(201).json({ message: "Product added to cart" });
+    }
+  } catch (error) {
+    console.error("Error modifying cart item:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
 
 module.exports = {
   getAbandonedCartMetrics,
   getFailedPaymentMetrics,
   getCheckoutFunnelMetrics,
+  getDeviceStats,
+  getCartAnalytics,
+  createCartAnalytics,
 };
