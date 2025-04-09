@@ -4,6 +4,7 @@ const Shipping = require("../models/shipping");
 const UserRequest = require("../models/UserRequest");
 const CartAnalytics = require("../models/CartAnalytics");
 const Product = require("../models/product");
+const SearchQuery = require("../models/SearchQuery");
 // const Shipping = require("../models/Shipping");
 
 // Create PaymentAttempt model if it doesn't exist
@@ -341,6 +342,43 @@ const createCartAnalytics = async (req, res) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+const addSearchquery = async (req, res) => {
+  try {
+    const { query } = req.body;
+
+    console.log({ query });
+
+    if (!query || query.trim() === "") {
+      return res.status(400).json({ message: "Search query is required" });
+    }
+
+    await new SearchQuery({ query: query.trim() }).save();
+
+    res.status(201).json({ message: "Search query saved successfully" });
+  } catch (error) {
+    console.error("Error saving search query:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+const getSearchquery = async (req, res) => {
+  try {
+    const { from, to } = req.query;
+
+    const filter = {};
+    if (from || to) {
+      filter.createdAt = {};
+      if (from) filter.createdAt.$gte = new Date(from);
+      if (to) filter.createdAt.$lte = new Date(to);
+    }
+
+    const queries = await SearchQuery.find(filter).sort({ createdAt: -1 });
+
+    res.json({ count: queries.length, queries });
+  } catch (error) {
+    console.error("Error fetching search queries:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
 
 module.exports = {
   getAbandonedCartMetrics,
@@ -349,4 +387,6 @@ module.exports = {
   getDeviceStats,
   getCartAnalytics,
   createCartAnalytics,
+  addSearchquery,
+  getSearchquery,
 };

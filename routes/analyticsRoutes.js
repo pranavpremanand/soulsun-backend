@@ -56,6 +56,10 @@ router.get("/cart/abandoned", cartController.getAbandonedCartMetrics);
 router.get("/checkout/failed-payments", cartController.getFailedPaymentMetrics);
 router.get("/checkout/funnel", cartController.getCheckoutFunnelMetrics);
 router.get("/device-stats", cartController.getDeviceStats);
+router.get("/device-stats", cartController.getDeviceStats);
+router.post("/search-query", cartController.addSearchquery);
+router.get("/search-query", cartController.getSearchquery);
+
 router.get("/cart-analytics", cartController.getCartAnalytics);
 router.post("/cart-analytics", cartController.createCartAnalytics);
 
