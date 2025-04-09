@@ -324,7 +324,7 @@ const createCartAnalytics = async (req, res) => {
     } else {
       // If the product does not exist in the cart, add it with the given quantityChange
       if (quantityChange <= 0) {
-        return res.status(400).json({
+        return res.status(200).json({
           message: "Cannot remove product, it doesn’t exist in the cart",
         });
       }
