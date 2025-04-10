@@ -5,13 +5,12 @@ const userSchema = mongoose.Schema(
   {
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-    role:{type:String, enum:['admin', 'user'], default:'user'},
-    profile:{type: mongoose.Schema.Types.ObjectId, ref: "Profile"}
+    password: { type: String },
+    role: { type: String, enum: ["admin", "user"], default: "user" },
+    profile: { type: mongoose.Schema.Types.ObjectId, ref: "Profile" },
   },
   { timestamps: true }
 );
-
 
 // Hash password before saving
 userSchema.pre("save", async function (next) {
