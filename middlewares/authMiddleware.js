@@ -3,7 +3,7 @@ const jwt = require("jsonwebtoken");
 
 const protectRoute = async (req, res, next) => {
   try {
-    if (req.headers["x-guest-user"] === "true") {
+    if (req.headers["X-Guest-User"] === "true") {
       return next();
     }
 
