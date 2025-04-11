@@ -22,7 +22,7 @@ const app = express();
 
 app.use(express.json());
 const corsOptions = {
-  origin: ["https://www.soulsun.in"],
+  origin: ["https://www.soulsun.in", "http://localhost:3000"],
   methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
   allowedHeaders: [
     "Content-Type",
@@ -30,7 +30,7 @@ const corsOptions = {
     "X-Requested-With",
     "Accept",
     "Origin",
-    "X-Guest-User",
+    "x-guest-user",
   ],
 };
 // "Access-Control-Allow-Origin",
