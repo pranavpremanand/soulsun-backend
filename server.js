@@ -21,6 +21,7 @@ dotenv.config();
 const app = express();
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 const corsOptions = {
   origin: ["https://www.soulsun.in", "http://localhost:3000"],
   methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],

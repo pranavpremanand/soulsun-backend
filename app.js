@@ -13,11 +13,13 @@ const profileRoutes = require("./routes/profile");
 const categoriesRoutes = require("./routes/category");
 const health = require("./routes/health");
 const analyticsRoutes = require("./routes/analyticsRoutes");
+const storeUserRequest = require("./middlewares/storeUserRequest");
 
 dotenv.config();
 const app = express();
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 // Configure CORS
 const corsOptions = {
   origin: "*",
@@ -47,6 +49,8 @@ app.use(async (req, res, next) => {
   }
 });
 // Register routes
+app.use("/api/analytics", analyticsRoutes);
+app.use(storeUserRequest);
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/shipping", shippingRoutes);
