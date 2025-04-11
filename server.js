@@ -30,7 +30,7 @@ const corsOptions = {
     "X-Requested-With",
     "Accept",
     "Origin",
-    "x-guest-user",
+    "X-Guest-User",
   ],
 };
 // "Access-Control-Allow-Origin",
