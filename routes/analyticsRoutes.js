@@ -7,6 +7,7 @@ const cartController = require("../controllers/cartController");
 const ProductView = require("../models/ProductView");
 const { addView } = require("../controllers/productController");
 const { protectRoute } = require("../middlewares/authMiddleware");
+const Analytics = require("../models/Analytics");
 
 const router = express.Router();
 
@@ -64,5 +65,68 @@ router.get("/cart-analytics", cartController.getCartAnalytics);
 router.post("/cart-analytics", cartController.createCartAnalytics);
 
 router.post("/add-view", addView);
+
+router.post("/track-visit", async (req, res) => {
+  try {
+    const { source, medium, campaign, timestamp, path } = req.body;
+
+    console.log({ source, medium, campaign, timestamp, path });
+
+    await Analytics.create({
+      source,
+      medium,
+      campaign,
+      timestamp,
+      path,
+    });
+
+    res.status(200).json({ message: "Tracked" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong" });
+  }
+});
+router.get("/track-visit", async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      source,
+      medium,
+      campaign,
+      startDate,
+      endDate,
+    } = req.query;
+
+    const query = {};
+
+    if (source) query.source = source;
+    if (medium) query.medium = medium;
+    if (campaign) query.campaign = campaign;
+
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) query.createdAt.$lte = new Date(endDate);
+    }
+
+    const analytics = await Analytics.find(query)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(Number(limit));
+
+    const total = await Analytics.countDocuments(query);
+
+    res.json({
+      data: analytics,
+      total,
+      page: Number(page),
+      pages: Math.ceil(total / limit),
+    });
+  } catch (err) {
+    console.error("Fetch analytics error:", err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+});
 
 module.exports = router;

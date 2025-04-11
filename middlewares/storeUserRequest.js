@@ -1,15 +1,15 @@
 const UserRequest = require("../models/UserRequest");
 
 const storeUserRequest = async (req, res, next) => {
-  console.log("Starting request tracking middleware");
+  // console.log("Starting request tracking middleware");
 
   // Continue with the main request flow immediately
   next();
 
   try {
-    console.log("Processing background tracking");
+    // console.log("Processing background tracking");
     const userAgent = req.headers["user-agent"] || "";
-    console.log("User agent:", userAgent);
+    // console.log("User agent:", userAgent);
 
     // Device detection logic
     let deviceType = "Desktop";
@@ -22,7 +22,7 @@ const storeUserRequest = async (req, res, next) => {
         ? "Tablet"
         : "Mobile";
     }
-    console.log("Detected device type:", deviceType);
+    // console.log("Detected device type:", deviceType);
 
     // Create document data
     const userRequestData = {
@@ -35,13 +35,13 @@ const storeUserRequest = async (req, res, next) => {
           ? { ...req.body }
           : {},
     };
-    console.log("Prepared data:", JSON.stringify(userRequestData));
+    // console.log("Prepared data:", JSON.stringify(userRequestData));
 
     // Try to save
-    console.log("Attempting database save");
+    // console.log("Attempting database save");
     const newUserRequest = new UserRequest(userRequestData);
     await newUserRequest.save();
-    console.log("Successfully saved to database");
+    // console.log("Successfully saved to database");
   } catch (error) {
     console.error("[Device Tracking] Error details:", {
       message: error.message,
