@@ -22,7 +22,7 @@ const app = express();
 
 app.use(express.json());
 const corsOptions = {
-  origin: "*",
+  origin: ["https://www.soulsun.in"],
   methods: ["GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS"],
   allowedHeaders: [
     "Content-Type",
@@ -30,10 +30,10 @@ const corsOptions = {
     "X-Requested-With",
     "Accept",
     "Origin",
-    "Access-Control-Allow-Origin",
     "X-Guest-User",
   ],
 };
+// "Access-Control-Allow-Origin",
 app.use(cors(corsOptions));
 app.options("*", cors(corsOptions)); // Pre-flight request for all routes
 // Serve static files from the 'assets' folder
