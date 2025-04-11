@@ -23,7 +23,7 @@ const app = express();
 app.use(express.json());
 const corsOptions = {
   origin: ["https://www.soulsun.in"],
-  methods: ["GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS"],
+  methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
   allowedHeaders: [
     "Content-Type",
     "Authorization",

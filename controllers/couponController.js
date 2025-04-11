@@ -7,7 +7,7 @@ const Coupon = require("../models/Coupon");
 const applyCoupon = async (req, res) => {
   try {
     const { code, cartTotal } = req.body;
-    const isGuestUser = req.headers["X-Guest-User"] === "true";
+    const isGuestUser = req.headers["x-guest-user"] === "true";
     const userId = isGuestUser ? null : req.user.id;
     console.log(userId, "asdfasdfsdfsdf");
     // 1️⃣ Check if the coupon exists
