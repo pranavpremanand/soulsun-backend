@@ -32,6 +32,7 @@ const corsOptions = {
     "Origin",
     "X-Guest-User",
   ],
+  credentials: true,
 };
 // "Access-Control-Allow-Origin",
 app.use(cors(corsOptions));
