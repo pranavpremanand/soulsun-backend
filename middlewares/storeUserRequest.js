@@ -1,123 +1,129 @@
-const UAParser = require("ua-parser-js");
 const UserRequest = require("../models/UserRequest");
 const mongoose = require("mongoose");
 
 /**
- * Middleware to track user requests from different devices - Vercel optimized
+ * Production-ready middleware for reliable device detection
+ * Works with live APIs and focuses on detecting mobile devices
  */
 const storeUserRequest = async (req, res, next) => {
-  // Try to store the request data, but never block the main request flow
-  try {
-    // Ensure database connection is active (important for serverless)
-    if (mongoose.connection.readyState !== 1) {
-      // If not connected, try to connect (assumes connection string is in env vars)
-      // This is important in serverless where connections may close between invocations
-      if (!process.env.MONGODB_URI) {
-        console.error("MONGODB_URI environment variable not set");
-        return next();
-      }
-
-      await mongoose.connect(process.env.MONGODB_URI, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-        serverSelectionTimeoutMS: 5000, // Timeout quickly if DB unavailable
-      });
-    }
-
-    // Use UAParser for device detection
-    const uaParser = new UAParser(req.headers["user-agent"] || "");
-    const parsedResult = uaParser.getResult();
-
-    console.log({ parsedResult });
-
-    // Better device type detection
-    let deviceType = "Desktop"; // Default
-    if (parsedResult.device.type === "mobile") {
-      deviceType = "Mobile";
-    } else if (parsedResult.device.type === "tablet") {
-      deviceType = "Tablet";
-    }
-
-    // Get client IP address (considering Vercel's specific headers)
-    const ipAddress =
-      req.headers["x-real-ip"] || // Vercel specific
-      req.headers["x-forwarded-for"]?.split(",")[0] ||
-      req.connection?.remoteAddress ||
-      "0.0.0.0";
-
-    // Collect request data based on method
-    let requestData;
-    if (req.method === "GET") {
-      requestData = req.query || {};
-    } else if (["POST", "PUT", "PATCH"].includes(req.method)) {
-      requestData = req.body || {};
-    } else {
-      requestData = {};
-    }
-
-    // Safe stringify of requestData (to handle circular references)
-    let safeRequestData;
+  // Always continue the request flow, handle tracking in the background
+  const tracking = (async () => {
     try {
-      // Limit data size to prevent document size issues
-      const stringifiedData = JSON.stringify(requestData);
-      safeRequestData =
-        stringifiedData.length > 5000
-          ? { truncated: true, size: stringifiedData.length }
-          : requestData;
-    } catch (e) {
-      safeRequestData = { error: "Could not serialize request data" };
-    }
-
-    // Prepare the data to store
-    const userRequestData = {
-      userAgent: req.headers["user-agent"] || "Unknown",
-      deviceType,
-      deviceDetails: {
-        browser: parsedResult.browser.name || "Unknown",
-        browserVersion: parsedResult.browser.version || "Unknown",
-        os: parsedResult.os.name || "Unknown",
-        osVersion: parsedResult.os.version || "Unknown",
-        device: parsedResult.device.model || "Unknown",
-      },
-      ipAddress,
-      requestMethod: req.method,
-      requestUrl: req.url || req.originalUrl || "/",
-      requestData: safeRequestData,
-      timestamp: new Date(),
-      environment: process.env.NODE_ENV || "development",
-      // Add Vercel-specific info
-      vercelInfo: {
-        region: process.env.VERCEL_REGION || "unknown",
-        isProduction: process.env.VERCEL_ENV === "production",
-      },
-    };
-
-    // Save the request data to MongoDB with timeout
-    const newUserRequest = new UserRequest(userRequestData);
-
-    // Use a promise with timeout to prevent hanging
-    const saveWithTimeout = new Promise(async (resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        reject(new Error("Database save operation timed out"));
-      }, 2500); // 2.5 second timeout
-
-      try {
-        await newUserRequest.save();
-        clearTimeout(timeoutId);
-        resolve();
-      } catch (error) {
-        clearTimeout(timeoutId);
-        reject(error);
+      // Ensure database connection (critical for serverless environments)
+      if (mongoose.connection.readyState !== 1) {
+        console.log("Establishing database connection...");
+        await mongoose.connect(
+          process.env.MONGODB_URI || process.env.DATABASE_URL
+        );
       }
-    });
 
-    await saveWithTimeout;
-  } catch (error) {
-    // Log the error but don't stop the request processing
-    console.error("Error storing user request:", error.message);
-  }
+      const userAgent = req.headers["user-agent"] || "";
 
-  // Always continue with the next middleware or route handler
+      // COMPREHENSIVE MOBILE DETECTION
+      // This detection combines multiple techniques for maximum reliability
+      let deviceType = "Desktop"; // Default
+
+      // Method 1: Keyword-based detection (most reliable for older devices)
+      const mobileKeywords = [
+        "android",
+        "iphone",
+        "ipod",
+        "windows phone",
+        "mobile",
+        "blackberry",
+        "webos",
+        "opera mini",
+        "opera mobi",
+        "nokia",
+        "samsung",
+        "lg-",
+        "mot-",
+        "sonyericsson",
+        "kindle",
+        "silk",
+      ];
+
+      const lowerCaseUA = userAgent.toLowerCase();
+
+      // Method 2: Screen size detection via headers (some clients provide this)
+      const hasSmallScreen =
+        req.headers["viewport-width"] &&
+        parseInt(req.headers["viewport-width"]) < 768;
+
+      // Method 3: Check if the user agent contains common mobile browser strings
+      const hasMobileBrowser =
+        /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          userAgent
+        );
+
+      // Method 4: Touchscreen detection (modern mobile browsers indicate this)
+      const hasTouchScreen =
+        /\b(TouchEvent|ontouchstart|touch-enabled|touch)\b/i.test(userAgent);
+
+      // DECISION LOGIC FOR DEVICE TYPE
+      if (
+        // Primary check: keywords in user agent
+        mobileKeywords.some((keyword) => lowerCaseUA.includes(keyword)) ||
+        // Secondary check: mobile browser identifier
+        hasMobileBrowser ||
+        // Tertiary checks for edge cases
+        hasSmallScreen ||
+        hasTouchScreen
+      ) {
+        // Is it a tablet or phone?
+        if (
+          /ipad|tablet|playbook|silk|android(?!.*mobile)/i.test(lowerCaseUA) ||
+          (req.headers["viewport-width"] &&
+            parseInt(req.headers["viewport-width"]) >= 600 &&
+            parseInt(req.headers["viewport-width"]) < 1200)
+        ) {
+          deviceType = "Tablet";
+        } else {
+          deviceType = "Mobile";
+        }
+      }
+
+      // Collect request data (minimal for your schema)
+      const requestData =
+        req.method === "GET"
+          ? req.query
+          : req.body && typeof req.body === "object"
+          ? req.body
+          : {};
+
+      // Create the document according to your schema
+      const userRequestData = {
+        userAgent: userAgent,
+        deviceType: deviceType,
+        requestData: requestData,
+        // createdAt will use the schema default
+      };
+
+      // Save with a timeout to prevent hanging
+      const savePromise = new Promise(async (resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error("Database save timed out"));
+        }, 3000);
+
+        try {
+          const newUserRequest = new UserRequest(userRequestData);
+          await newUserRequest.save();
+          clearTimeout(timeout);
+          resolve();
+        } catch (error) {
+          clearTimeout(timeout);
+          reject(error);
+        }
+      });
+
+      await savePromise;
+      console.log(`Device tracked successfully: ${deviceType}`);
+    } catch (error) {
+      console.error("Error in device tracking:", error.message);
+    }
+  })();
+
+  // Don't wait for tracking to complete - continue with the main request
   next();
 };
 
