@@ -409,7 +409,7 @@ const seedProducts = async () => {
     insertedCategories.forEach((cat) => {
       categoryMap[cat.name] = cat._id;
     });
-    console.log(categoryMap)
+    // console.log(categoryMap)
     // Replace category names in products with ObjectIds
     const updatedProducts = allProducts.map((product) => ({
       ...product,

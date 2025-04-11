@@ -346,7 +346,7 @@ const addSearchquery = async (req, res) => {
   try {
     const { query } = req.body;
 
-    console.log({ query });
+    // console.log({ query });
 
     if (!query || query.trim() === "") {
       return res.status(400).json({ message: "Search query is required" });
