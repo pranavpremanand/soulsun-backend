@@ -1,6 +1,9 @@
 // controllers/shippingController.js
 const asyncCatch = require("../middlewares/asyncTryCatch");
-const { shippingSchema, shippingStatusSchema } = require("../middlewares/validator");
+const {
+  shippingSchema,
+  shippingStatusSchema,
+} = require("../middlewares/validator");
 const Shipping = require("../models/shipping");
 
 // Add shipping information
@@ -26,20 +29,29 @@ const addShipping = asyncCatch(shippingSchema, async (req, res) => {
     return sum + product.quantity * product.price;
   }, 0);
   // Create shipping document
-  const shipping = new Shipping({
-    user: req.user.id,
-    fullName,
-    phoneNumber,
-    address,
-    city,
-    state,
-    postalCode,
-    landmark,
-    products,
-    totalPrice,
-  });
-  await shipping.save();
-  res.status(201).json({ message: "Shipping details added", shipping });
+  try {
+    const shipping = new Shipping({
+      user: req.user.id,
+      fullName,
+      phoneNumber,
+      address,
+      city,
+      state,
+      postalCode,
+      landmark,
+      products,
+      totalPrice,
+    });
+    await shipping.save();
+    res.status(201).json({ message: "Shipping details added", shipping });
+  } catch (error) {
+    console.error("Error add shipping details:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while add shipping details.",
+      error: error.message,
+    });
+  }
 });
 
 //Get shipping by user id
@@ -49,9 +61,9 @@ const getShippingByUserId = async (req, res) => {
     const shippings = await Shipping.find({ user: req.user.id });
 
     if (!shippings || shippings.length === 0) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "No shipping details found for this user." 
+      return res.status(404).json({
+        success: false,
+        message: "No shipping details found for this user.",
       });
     }
 
@@ -114,8 +126,7 @@ const getAllOrdersList = async (req, res) => {
   }
 };
 
-
-const getStats = async(req, res) => {
+const getStats = async (req, res) => {
   try {
     const totalOrders = await Shipping.countDocuments();
     const totalSales = await Shipping.aggregate([
@@ -125,7 +136,9 @@ const getStats = async(req, res) => {
       { $unwind: "$products" },
       { $group: { _id: null, total: { $sum: "$products.quantity" } } },
     ]);
-    const deliveredOrders = await Shipping.countDocuments({ isDelivered: true });
+    const deliveredOrders = await Shipping.countDocuments({
+      isDelivered: true,
+    });
 
     res.json({
       totalOrders,
@@ -136,10 +149,10 @@ const getStats = async(req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-}
+};
 const getSalesReport = async (req, res) => {
   const { range } = req.params;
-  
+
   const date = new Date();
   let startDate;
 
@@ -195,26 +208,34 @@ const getSalesReport = async (req, res) => {
   }
 };
 
+const updateShippingStatus = asyncCatch(
+  shippingStatusSchema,
+  async (req, res) => {
+    const { id, status } = req.body;
 
-const updateShippingStatus = asyncCatch(shippingStatusSchema, async(req, res)=>{
-  const {id, status} = req.body
+    const shipping = await Shipping.findOne({ _id: id });
+    if (!shipping) {
+      return res.status(404).json({
+        success: false,
+        message: "No shipping details found for this id.",
+      });
+    }
 
-  const shipping = await Shipping.findOne({ _id: id });
-  if (!shipping ) {
-    return res.status(404).json({ 
-      success: false, 
-      message: "No shipping details found for this id." 
+    shipping.isDelivered = status;
+
+    await shipping.save();
+    res.status(200).json({
+      success: true,
+      message: "Shipping details updated successfully.",
     });
   }
+);
 
-  shipping.isDelivered =status
-
-  await shipping.save()
-  res.status(200).json({
-    success: true,
-    message: "Shipping details updated successfully.",
-  });
-  
-})
-
-module.exports = { addShipping, getShippingByUserId, getSalesReport, getAllOrdersList , updateShippingStatus, getStats};
+module.exports = {
+  addShipping,
+  getShippingByUserId,
+  getSalesReport,
+  getAllOrdersList,
+  updateShippingStatus,
+  getStats,
+};
