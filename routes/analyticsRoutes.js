@@ -66,7 +66,7 @@ router.post("/cart-analytics", cartController.createCartAnalytics);
 
 router.post("/add-view", addView);
 
-router.post("/track-visit", async (req, res) => {
+router.post("/trackdata", async (req, res) => {
   try {
     const { source, medium, campaign, timestamp, path } = req.body;
 
@@ -86,7 +86,7 @@ router.post("/track-visit", async (req, res) => {
     res.status(500).json({ error: "Something went wrong" });
   }
 });
-router.get("/track-visit", async (req, res) => {
+router.get("/trackdata", async (req, res) => {
   try {
     const {
       page = 1,
