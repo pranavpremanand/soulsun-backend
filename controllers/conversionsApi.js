@@ -1,9 +1,9 @@
 const axios = require("axios");
 const crypto = require("crypto");
 
-const pixelId = "2136476180162625";
+const pixelId = "1238400481630068";
 const accessToken =
-  "EAFZABLzxSGpIBOyUrjYNzgfYSFwLLYuzdc5bq2xQMj6KhS5z2RDkyLW8F0KqmIbeoIrWic1B1jT0i8DKb5HS0swk1xAadUjqUO1QQfyhskjVabtI1kXIZAIAE8r7unlt0TH9wSisDb1nvIdXk7ugyK4yw4CxVQGKvZAJZCmvdTZBnZAeZAvLYW3y4nMNwBepgfYYgZDZD";
+  "EAAbMvJbLSKUBO5ToXa58TqAnfNW1xhF9wjAZAMX4WXd1hZCnEwOrWru1IZAbg8ZA9rbGQEBSmbSFJl32bZAjJRMmHOlTSozrKOJQslux6cs6EOQCIgPHHopmtTSXPXwmdYxga1xuJdTZBTB0IE7UKUgqPsWYWtWmhnm4v2t4sAMTRvdIA3TbqogJVPcX0HL75ZAVAZDZD";
 
 export const sendServerEvent = async (
   userData = {},
