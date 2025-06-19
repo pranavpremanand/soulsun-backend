@@ -5,6 +5,7 @@ const {
   shippingStatusSchema,
 } = require("../middlewares/validator");
 const Shipping = require("../models/shipping");
+const { sendPurchaseEvent } = require("../utils/facebook");
 
 // Add shipping information
 const addShipping = asyncCatch(shippingSchema, async (req, res) => {
@@ -43,6 +44,23 @@ const addShipping = asyncCatch(shippingSchema, async (req, res) => {
       totalPrice,
     });
     await shipping.save();
+
+    // Send purchase event to Facebook CAPI
+    try {
+      await sendPurchaseEvent({
+        user: req.user,
+        products,
+        totalPrice,
+        fullName,
+        city,
+        state,
+        postalCode
+      });
+    } catch (facebookError) {
+      // Log the error but don't fail the order
+      console.error('Facebook CAPI Error:', facebookError);
+    }
+
     res.status(201).json({ message: "Shipping details added", shipping });
   } catch (error) {
     console.error("Error add shipping details:", error.message);
